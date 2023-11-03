@@ -1,1 +1,1 @@
-deploy cluster FATE 1.10.0 on eggroll with docker compose
+deploy cluster FATE 1.11.2 on eggroll with docker compose
