@@ -18,16 +18,16 @@ networks:
       - subnet: 192.167.0.0/16
 
 volumes:
-        #  fate_flow_logs:
-        #  download_dir:
-        #  shared_dir_examples:
-        # driver: local
+        #fate_flow_logs:
+        #download_dir:
+        #shared_dir_examples:
+        #driver: local
         #driver_opts:
         #type: none
-        # o: bind
+        #o: bind
         #device: /data/projects/fate/confs-10000/shared_dir/examples
   shared_dir_federatedml:
-          # driver: local
+          #driver: local
           #driver_opts:
           #type: none
           #o: bind
@@ -54,7 +54,7 @@ services:
     networks:
       - fate-network
     command: ["bash", "-c", "java -Dlog4j.configurationFile=$${EGGROLL_HOME}/conf/log4j2.properties -cp $${EGGROLL_HOME}/lib/*:$${EGGROLL_HOME}/conf/ com.webank.eggroll.rollsite.EggSiteBootstrap -c $${EGGROLL_HOME}/conf/eggroll.properties"]
-  
+
   fateboard:
     image: "federatedai/fateboard:${TAG}"
     restart: always
@@ -68,14 +68,14 @@ services:
       - fate-network
     depends_on:
       - fateflow
-  
+
   clustermanager:
     image: "federatedai/eggroll:${TAG}"
     restart: always
     ports:
       - "4670:4670"
     expose:
-      - 4670 
+      - 4670
     volumes:
       - ./confs/eggroll/conf:/data/projects/fate/eggroll/conf
       - /etc/localtime:/etc/localtime:ro
@@ -85,7 +85,7 @@ services:
     networks:
       - fate-network
     command: ["bash", "-c", "java -Dlog4j.configurationFile=$${EGGROLL_HOME}/conf/log4j2.properties -cp $${EGGROLL_HOME}/lib/*: com.webank.eggroll.core.Bootstrap --bootstraps com.webank.eggroll.core.resourcemanager.ClusterManagerBootstrap -c $${EGGROLL_HOME}/conf/eggroll.properties -p 4670 -s 'EGGROLL_DEAMON'"]
-  
+
   nodemanager:
     image: "federatedai/eggroll:${TAG}"
     restart: always
@@ -99,16 +99,19 @@ services:
       - ./shared_dir/data/nodemanager:/data/projects/fate/eggroll/data
       - /etc/localtime:/etc/localtime:ro
       - shared_dir_federatedml:/data/projects/fate/fate/python/federatedml
+    depends_on:
+      - clustermanager
     networks:
       - fate-network
+    cap_add:
+      - SYS_PTRACE
     command: ["bash", "-c", "java -Dlog4j.configurationFile=$${EGGROLL_HOME}/conf/log4j2.properties -cp $${EGGROLL_HOME}/lib/*: com.webank.eggroll.core.Bootstrap --bootstraps com.webank.eggroll.core.resourcemanager.NodeManagerBootstrap -c $${EGGROLL_HOME}/conf/eggroll.properties -p 4671 -s 'EGGROLL_DEAMON'"]
-  
+
   fateflow:
     image: "federatedai/fateflow:${TAG}"
     environment:
-      PYTHONPATH: "$$PYTHONPATH:/data/projects/fate/fate/python:/data/projects/fate/eggroll/python:/data/projects/fate/fateflow/python:/data/projects/fate/fate/python/fate_client"
       FATE_PROJECT_BASE: "/data/projects/fate"
-      FATE_LOG_LEVEL: "INFO"
+      FATE_LOG_LEVEL: "DEBUG"
     ports:
       - "9360:9360"
       - "9380:9380"
@@ -117,14 +120,11 @@ services:
       - shared_dir_federatedml:/data/projects/fate/fate/python/federatedml
       - ./shared_dir_examples:/data/projects/fate/examples
       - ./download_dir:/data/projects/fate/python/download_dir
+      - ./fate_flow_logs:/data/projects/fate/fateflow/logs
       - ./confs/fate_flow/conf/service_conf.yaml:/data/projects/fate/conf/service_conf.yaml
       - ./confs/fate_flow/conf/pulsar_route_table.yaml:/data/projects/fate/conf/pulsar_route_table.yaml
       - ./confs/fate_flow/conf/rabbitmq_route_table.yaml:/data/projects/fate/conf/rabbitmq_route_table.yaml
-      - ./confs/fate_flow/conf/component_registry.json:/data/projects/fate/fateflow/conf/component_registry.json
-      - ./confs/fate_flow/conf/job_default_config.yaml:/data/projects/fate/fateflow/conf/job_default_config.yaml
-      - ./confs/fate_flow/conf/template_info.yaml:/data/projects/fate/fateflow/conf/template_info.yaml
       - ./confs/eggroll/conf:/data/projects/fate/eggroll/conf
-      - ./fate_flow_logs:/data/projects/fate/fateflow/logs
       - ./shared_dir/data/model_local_cache:/data/projects/fate/fateflow/model_local_cache
       - /etc/localtime:/etc/localtime:ro
     depends_on:
@@ -156,7 +156,7 @@ services:
     environment:
       FATE_FLOW_IP: "fateflow"
       FATE_FLOW_PORT: "9380"
-      FATE_SERVING_HOST: "192.168.56.111:8059"
+      FATE_SERVING_HOST: "192.168.1.1:8059"
       NOTEBOOK_HASHED_PASSWORD: "${NOTEBOOK_HASHED_PASSWORD}"
     volumes:
       - ./download_dir:/data/projects/fate/download_dir
@@ -170,8 +170,6 @@ services:
 
   mysql:
     image: "mysql:8.0.28"
-    ports:
-      - "3306:3306"
     expose:
       - 3306
     volumes:
@@ -179,8 +177,9 @@ services:
       - ./shared_dir/data/mysql:/var/lib/mysql
       - /etc/localtime:/etc/localtime:ro
     restart: always
+    cap_add:
+      - SYS_NICE
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-
     networks:
       - fate-network
