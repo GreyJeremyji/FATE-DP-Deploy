@@ -1,0 +1,35 @@
+{
+	"route_table": {
+		"default": {
+			"default": [
+				{
+ 
+				"ip": "rollsite",
+				"port": "9370"
+	
+				}
+			]
+		},
+
+		"9999": {
+			"default": [{
+		 		"ip": "192.168.56.110",
+				"port": 9370
+			    }]
+		},
+	
+		"10000": {
+			"default": [{
+				"ip": "rollsite",
+				"port": 9370
+			}],
+			"fateflow": [{
+				"ip": "fateflow",
+				"port": 9360
+			}]
+		}
+	},
+	"permission": {
+		"default_allow": true
+	}
+}
